@@ -1,1106 +1,424 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nikhilesh Mishra — Creative Designer & Visual Storyteller</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-<style>
-:root {
-  --void: #04060F;
-  --nebula: #0A1428;
-  --nebula2: #0F1F3D;
-  --star-white: #E8EDF8;
-  --muted: #6B7A9A;
-  --faint: #2A3550;
-  --cyan: #00C8F0;
-  --violet: #7B4FFF;
-  --magenta: #FF2D8A;
-  --amber: #FFAA00;
-  --cyan-glow: rgba(0,200,240,0.15);
-  --violet-glow: rgba(123,79,255,0.15);
-  --magenta-glow: rgba(255,45,138,0.12);
-}
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import * as THREE from 'three';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Float, Text, Points, PointMaterial, MeshDistortMaterial, PerspectiveCamera, Environment } from '@react-three/drei';
+import { 
+  Brain, 
+  Zap, 
+  Layers, 
+  Video, 
+  Cpu, 
+  ArrowRight, 
+  Linkedin, 
+  ExternalLink,
+  Palette,
+  Workflow,
+  Sparkles
+} from 'lucide-react';
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body {
-  background: var(--void);
-  color: var(--star-white);
-  font-family: 'DM Sans', sans-serif;
-  font-size: 16px;
-  line-height: 1.6;
-  overflow-x: hidden;
-  cursor: none;
-}
+// --- THEME ---
+const theme = {
+  primary: '#00d2ff',
+  secondary: '#9d50bb',
+  accent: '#ff006e',
+  background: '#050505',
+};
 
-/* ── CURSOR ── */
-.cursor {
-  width: 8px; height: 8px;
-  background: var(--cyan);
-  border-radius: 50%;
-  position: fixed;
-  pointer-events: none;
-  z-index: 9999;
-  transform: translate(-50%,-50%);
-  transition: width .2s, height .2s, background .2s;
-  box-shadow: 0 0 12px var(--cyan), 0 0 24px rgba(0,200,240,.3);
-}
-.cursor-ring {
-  width: 36px; height: 36px;
-  border: 1px solid rgba(0,200,240,.4);
-  border-radius: 50%;
-  position: fixed;
-  pointer-events: none;
-  z-index: 9998;
-  transform: translate(-50%,-50%);
-  transition: width .3s, height .3s, border-color .3s;
-}
-body:has(a:hover) .cursor,
-body:has(button:hover) .cursor { width:14px; height:14px; background:var(--magenta); }
-body:has(a:hover) .cursor-ring,
-body:has(button:hover) .cursor-ring { width:52px; height:52px; border-color:rgba(255,45,138,.5); }
-
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-track { background: var(--void); }
-::-webkit-scrollbar-thumb { background: var(--faint); border-radius: 2px; }
-
-/* ── NAV ── */
-nav {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 100;
-  padding: 20px 48px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(to bottom, rgba(4,6,15,.95), transparent);
-}
-.nav-logo {
-  font-family: 'Syne', sans-serif;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: .2em;
-  color: var(--cyan);
-  text-decoration: none;
-  text-transform: uppercase;
-}
-.nav-links { display: flex; gap: 36px; }
-.nav-links a {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--muted);
-  text-decoration: none;
-  letter-spacing: .1em;
-  transition: color .3s;
-  cursor: none;
-}
-.nav-links a:hover { color: var(--star-white); }
-
-/* ── SECTIONS ── */
-section { position: relative; min-height: 100vh; overflow: hidden; }
-
-/* ── HERO ── */
-#hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 0 24px;
-}
-#hero-canvas { position: absolute; inset: 0; z-index: 0; }
-.hero-content {
-  position: relative; z-index: 2;
-  animation: heroReveal 2s cubic-bezier(.16,1,.3,1) forwards;
-  opacity: 0;
-}
-@keyframes heroReveal {
-  from { opacity:0; transform:translateY(30px); }
-  to   { opacity:1; transform:translateY(0); }
-}
-.hero-eyebrow {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  letter-spacing: .35em;
-  color: var(--cyan);
-  text-transform: uppercase;
-  margin-bottom: 24px;
-  opacity: .7;
-}
-.hero-title {
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(56px, 9vw, 108px);
-  font-weight: 800;
-  line-height: .95;
-  letter-spacing: -.02em;
-  margin-bottom: 28px;
-}
-.hero-title .glow-cyan  { color:var(--cyan);   text-shadow:0 0 40px rgba(0,200,240,.5),0 0 80px rgba(0,200,240,.2); }
-.hero-title .glow-violet{ color:var(--violet); text-shadow:0 0 40px rgba(123,79,255,.5),0 0 80px rgba(123,79,255,.2); }
-.hero-sub {
-  font-size: 16px; color: var(--muted);
-  max-width: 480px; margin: 0 auto 48px;
-  line-height: 1.7;
-}
-.hero-role-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  background: rgba(123,79,255,.1);
-  border: 1px solid rgba(123,79,255,.3);
-  border-radius: 20px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  letter-spacing: .15em;
-  color: var(--violet);
-  margin-bottom: 32px;
-}
-.hero-enter {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 32px;
-  border: 1px solid rgba(0,200,240,.3);
-  border-radius: 40px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  letter-spacing: .15em;
-  color: var(--cyan);
-  text-decoration: none;
-  cursor: none;
-  transition: all .3s;
-  position: relative;
-  overflow: hidden;
-}
-.hero-enter::before {
-  content:''; position:absolute; inset:0;
-  background:var(--cyan-glow); opacity:0; transition:opacity .3s;
-}
-.hero-enter:hover::before { opacity:1; }
-.hero-enter:hover { border-color:var(--cyan); box-shadow:0 0 24px rgba(0,200,240,.2); }
-.pulse-dot {
-  width:8px; height:8px;
-  background:var(--cyan); border-radius:50%;
-  animation:pulse 2s ease-in-out infinite;
-  box-shadow:0 0 8px var(--cyan);
-  flex-shrink:0;
-}
-@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.5);opacity:.6} }
-.scroll-hint {
-  position:absolute; bottom:36px; left:50%; transform:translateX(-50%);
-  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.2em; color:var(--muted);
-  opacity:0; animation:fadeInUp 1s 3.5s forwards;
-  display:flex; flex-direction:column; align-items:center; gap:8px;
-}
-@keyframes fadeInUp {
-  from{opacity:0;transform:translateX(-50%) translateY(10px)}
-  to{opacity:.5;transform:translateX(-50%) translateY(0)}
-}
-.scroll-line {
-  width:1px; height:40px;
-  background:linear-gradient(to bottom,var(--cyan),transparent);
-  animation:scrollPulse 2s ease-in-out infinite;
-}
-@keyframes scrollPulse { 0%,100%{opacity:.3} 50%{opacity:1} }
-
-/* ── SHARED SECTION ── */
-.section-inner { max-width:1200px; margin:0 auto; padding:120px 48px; position:relative; z-index:2; }
-.section-label {
-  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.35em;
-  color:var(--cyan); text-transform:uppercase; margin-bottom:16px;
-  display:flex; align-items:center; gap:12px;
-}
-.section-label::before { content:''; width:32px; height:1px; background:var(--cyan); opacity:.5; }
-.section-title {
-  font-family:'Syne',sans-serif; font-size:clamp(36px,5vw,60px);
-  font-weight:700; line-height:1.1; margin-bottom:20px; letter-spacing:-.02em;
-}
-.section-body { font-size:16px; color:var(--muted); max-width:560px; line-height:1.8; }
-
-/* ── MIND MAP ── */
-#mindmap { background:var(--void); }
-#mindmap-canvas { position:absolute; inset:0; z-index:1; }
-.mindmap-header { margin-bottom:60px; }
-.skill-legend { display:flex; gap:12px; flex-wrap:wrap; margin-top:32px; }
-.skill-pill {
-  padding:7px 18px; border-radius:20px; font-size:12px;
-  font-family:'JetBrains Mono',monospace; letter-spacing:.08em; cursor:none; transition:all .3s;
-  display:flex; align-items:center; gap:7px;
-}
-.skill-pill .pill-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-.skill-pill.cyan  { border:1px solid rgba(0,200,240,.3);  color:var(--cyan); }
-.skill-pill.violet{ border:1px solid rgba(123,79,255,.3); color:var(--violet); }
-.skill-pill.magenta{border:1px solid rgba(255,45,138,.3); color:var(--magenta); }
-.skill-pill.amber { border:1px solid rgba(255,170,0,.3);  color:var(--amber); }
-.skill-pill:hover { transform:translateY(-2px); }
-.skill-pill.cyan:hover   { background:var(--cyan-glow);   border-color:var(--cyan); }
-.skill-pill.violet:hover { background:var(--violet-glow); border-color:var(--violet); }
-.skill-pill.magenta:hover{ background:var(--magenta-glow);border-color:var(--magenta); }
-.skill-pill.amber:hover  { background:rgba(255,170,0,.1); border-color:var(--amber); }
-
-/* ── GALAXY ── */
-#galaxy { background:var(--void); padding:0; min-height:100vh; }
-#galaxy-canvas {
-  position:absolute; top:0; left:0;
-  width:100% !important;
-  height:100% !important;
-  z-index:1;
-}
-.galaxy-ui {
-  position:absolute; top:60px; left:50%; transform:translateX(-50%);
-  z-index:3; text-align:center;
-}
-.galaxy-title-block { margin-bottom:24px; }
-.galaxy-filters { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
-.gf-btn {
-  padding:6px 18px;
-  background:rgba(10,20,40,.8); border:1px solid var(--faint);
-  border-radius:20px; font-family:'JetBrains Mono',monospace; font-size:10px;
-  letter-spacing:.15em; color:var(--muted); cursor:none; transition:all .3s;
-  backdrop-filter:blur(10px);
-}
-.gf-btn.active { border-color:var(--cyan); color:var(--cyan); background:rgba(0,200,240,.08); }
-.gf-btn:hover  { border-color:var(--muted); color:var(--star-white); }
-.star-tooltip {
-  position:absolute; background:rgba(10,20,40,.95); border:1px solid var(--faint);
-  border-radius:12px; padding:16px 20px; pointer-events:none; z-index:10;
-  min-width:200px; backdrop-filter:blur(20px); transform:translate(-50%,-110%); display:none;
-}
-.star-tooltip.visible { display:block; }
-.star-tooltip-cat { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.2em; margin-bottom:6px; }
-.star-tooltip-title { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; margin-bottom:4px; }
-.star-tooltip-desc { font-size:12px; color:var(--muted); }
-
-/* ── CASE STUDIES ── */
-#casestudies { background:var(--void); }
-.cases-grid { display:flex; flex-direction:column; gap:80px; margin-top:60px; }
-.case-item {
-  display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center;
-  opacity:0; transform:translateY(40px);
-  transition:all .8s cubic-bezier(.16,1,.3,1);
-}
-.case-item.visible { opacity:1; transform:translateY(0); }
-.case-item:nth-child(even) { direction:rtl; }
-.case-item:nth-child(even) > * { direction:ltr; }
-.case-visual {
-  aspect-ratio:4/3; border-radius:16px; position:relative;
-  overflow:hidden; border:1px solid var(--faint);
-}
-.case-visual-inner {
-  position:absolute; inset:0; display:flex;
-  align-items:center; justify-content:center;
-  font-family:'Syne',sans-serif; font-size:80px; font-weight:800;
-}
-.case-visual::after {
-  content:''; position:absolute; inset:0;
-  background:linear-gradient(135deg,transparent 40%,rgba(4,6,15,.8));
-}
-.case-cat {
-  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.2em;
-  text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:8px;
-}
-.cat-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-.case-title {
-  font-family:'Syne',sans-serif; font-size:clamp(22px,3vw,36px);
-  font-weight:700; line-height:1.15; margin-bottom:16px;
-}
-.case-desc { font-size:15px; color:var(--muted); line-height:1.7; margin-bottom:28px; }
-.case-metrics { display:flex; gap:32px; margin-bottom:28px; flex-wrap:wrap; }
-.case-metric-val { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; line-height:1; }
-.case-metric-label { font-size:11px; color:var(--muted); margin-top:4px; }
-.case-tags { display:flex; gap:8px; flex-wrap:wrap; }
-.tag {
-  padding:4px 12px; background:var(--nebula); border:1px solid var(--faint);
-  border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted);
-}
-
-/* ── PROCESS ── */
-#process { background:linear-gradient(180deg,var(--void) 0%,#070D20 100%); }
-.process-orbit-wrap {
-  position: relative;
-  height: 600px;
-  width: 100%;
-  margin-top: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-#process-canvas {
-  position: absolute;
-  top: 0; left: 0;
-  width: 100% !important;
-  height: 600px !important;
-}
-
-/* ── ABOUT ── */
-#about { background:var(--void); }
-.about-split { display:grid; grid-template-columns:1fr 1.2fr; gap:80px; align-items:center; }
-.about-portrait { aspect-ratio:3/4; border-radius:20px; position:relative; overflow:hidden; border:1px solid var(--faint); }
-.about-portrait-inner {
-  width:100%; height:100%;
-  background:linear-gradient(135deg,var(--nebula2) 0%,#1A0D3E 50%,#0D2040 100%);
-  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px;
-}
-.portrait-initials {
-  font-family:'Syne',sans-serif; font-size:96px; font-weight:800;
-  background:linear-gradient(135deg,var(--cyan),var(--violet));
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; opacity:.5;
-}
-.portrait-name-tag {
-  font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.2em;
-  color:var(--muted); text-transform:uppercase; text-align:center;
-}
-.about-portrait-glow {
-  position:absolute; bottom:0; left:0; right:0; height:50%;
-  background:linear-gradient(to top,rgba(123,79,255,.2),transparent);
-}
-.about-quote {
-  font-family:'Syne',sans-serif; font-size:clamp(20px,2.5vw,28px); font-weight:600;
-  line-height:1.4; margin-bottom:32px; letter-spacing:-.01em;
-}
-.about-quote em { color:var(--cyan); font-style:normal; }
-.about-body { font-size:15px; color:var(--muted); line-height:1.8; margin-bottom:40px; }
-.about-stats {
-  display:flex; gap:40px; padding:24px 0;
-  border-top:1px solid var(--faint); border-bottom:1px solid var(--faint); margin-bottom:40px;
-  flex-wrap:wrap;
-}
-.about-stat-val {
-  font-family:'Syne',sans-serif; font-size:36px; font-weight:800;
-  background:linear-gradient(135deg,var(--cyan),var(--violet));
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-}
-.about-stat-lbl { font-size:12px; color:var(--muted); margin-top:2px; }
-.about-values { display:flex; flex-direction:column; gap:20px; }
-.about-value-item { display:flex; gap:16px; align-items:flex-start; }
-.value-icon {
-  width:36px; height:36px; border-radius:8px; border:1px solid var(--faint);
-  display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0;
-  background:var(--nebula);
-}
-.value-text-title { font-size:14px; font-weight:500; margin-bottom:4px; }
-.value-text-desc { font-size:13px; color:var(--muted); line-height:1.6; }
-
-/* ── CONTACT ── */
-#contact { display:flex; align-items:center; background:var(--void); }
-#contact-canvas { position:absolute; inset:0; z-index:0; }
-.contact-inner {
-  max-width:720px; margin:0 auto; padding:120px 48px;
-  position:relative; z-index:2; width:100%;
-}
-.contact-pretitle {
-  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.3em;
-  color:var(--violet); text-transform:uppercase; margin-bottom:24px; opacity:.8;
-}
-.contact-title {
-  font-family:'Syne',sans-serif; font-size:clamp(36px,5vw,64px);
-  font-weight:800; line-height:1.1; letter-spacing:-.02em; margin-bottom:16px;
-}
-.contact-title span { color:var(--violet); }
-.contact-sub { font-size:15px; color:var(--muted); margin-bottom:12px; }
-.contact-direct {
-  display:flex; align-items:center; gap:24px; flex-wrap:wrap;
-  margin-bottom:48px; padding:16px 0; border-bottom:1px solid var(--faint);
-}
-.contact-info-item {
-  display:flex; align-items:center; gap:8px;
-  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); letter-spacing:.05em;
-}
-.contact-info-icon {
-  width:28px; height:28px; border-radius:6px; border:1px solid var(--faint);
-  display:flex; align-items:center; justify-content:center; font-size:12px; flex-shrink:0;
-  background:var(--nebula);
-}
-.contact-info-item a { color:var(--muted); text-decoration:none; cursor:none; transition:color .2s; }
-.contact-info-item a:hover { color:var(--star-white); }
-.contact-form { display:flex; flex-direction:column; gap:0; }
-.form-row { position:relative; border-bottom:1px solid var(--faint); transition:border-color .3s; }
-.form-row:focus-within { border-color:var(--violet); }
-.form-label {
-  font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.2em; color:var(--muted);
-  text-transform:uppercase; display:block; margin-bottom:8px; margin-top:28px;
-}
-.form-input, .form-textarea {
-  background:transparent; border:none; outline:none; width:100%;
-  font-family:'DM Sans',sans-serif; font-size:18px; color:var(--star-white);
-  padding-bottom:16px; resize:none; cursor:none;
-}
-.form-textarea { min-height:80px; }
-.form-submit {
-  margin-top:48px; display:inline-flex; align-items:center; gap:16px;
-  padding:18px 40px; background:linear-gradient(135deg,var(--violet),#5E2FCC);
-  border:none; border-radius:50px; font-family:'Syne',sans-serif; font-size:15px;
-  font-weight:700; letter-spacing:.05em; color:white; cursor:none; transition:all .3s;
-  position:relative; overflow:hidden;
-}
-.form-submit::before {
-  content:''; position:absolute; inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,.1),transparent); opacity:0; transition:opacity .3s;
-}
-.form-submit:hover { transform:translateY(-2px); box-shadow:0 8px 40px rgba(123,79,255,.4); }
-.form-submit:hover::before { opacity:1; }
-.transmit-arrow {
-  width:24px; height:24px; border:1.5px solid rgba(255,255,255,.5); border-radius:50%;
-  display:flex; align-items:center; justify-content:center; font-size:12px; transition:transform .3s;
-}
-.form-submit:hover .transmit-arrow { transform:translateX(4px); }
-.contact-footer {
-  margin-top:60px; padding-top:32px; border-top:1px solid var(--faint);
-  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;
-}
-.contact-social { display:flex; gap:20px; flex-wrap:wrap; }
-.social-link {
-  font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em;
-  color:var(--muted); text-decoration:none; cursor:none; transition:color .2s;
-  display:flex; align-items:center; gap:6px;
-}
-.social-link:hover { color:var(--star-white); }
-.social-link-dot { width:4px; height:4px; border-radius:50%; flex-shrink:0; }
-.contact-copy { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--faint); letter-spacing:.1em; }
-
-/* ── REVEAL ── */
-.reveal {
-  opacity:0; transform:translateY(30px);
-  transition:opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1);
-}
-.reveal.visible { opacity:1; transform:translateY(0); }
-.reveal-delay-1 { transition-delay:.1s; }
-.reveal-delay-2 { transition-delay:.2s; }
-.reveal-delay-3 { transition-delay:.3s; }
-
-/* ── ORBS ── */
-.orb { position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none; z-index:0; }
-.orb-cyan    { background:rgba(0,200,240,.06); }
-.orb-violet  { background:rgba(123,79,255,.06); }
-.orb-magenta { background:rgba(255,45,138,.05); }
-</style>
-</head>
-<body>
-
-<div class="cursor" id="cursor"></div>
-<div class="cursor-ring" id="cursorRing"></div>
-
-<!-- NAV -->
-<nav>
-  <a href="#hero" class="nav-logo">NM.DESIGN</a>
-  <div class="nav-links">
-    <a href="#mindmap">Skills</a>
-    <a href="#galaxy">Work</a>
-    <a href="#process">Process</a>
-    <a href="#about">About</a>
-    <a href="#contact">Contact</a>
-  </div>
-</nav>
-
-<!-- ═══════════════ HERO ═══════════════ -->
-<section id="hero">
-  <canvas id="hero-canvas"></canvas>
-  <div class="hero-content" style="animation-delay:0.5s">
-    <p class="hero-eyebrow">— Enter the mind of a creator —</p>
-    <div class="hero-role-badge">✦ Creative Designer &amp; Visual Storyteller</div>
-    <h1 class="hero-title">
-      <span class="glow-cyan">NIKHILESH</span><br>
-      <span style="color:var(--star-white)">MIS</span><span class="glow-violet">HRA</span>
-    </h1>
-    <p class="hero-sub">Every idea is a star. Every skill a constellation. Every project — a world built from imagination and intent.</p>
-    <a href="#mindmap" class="hero-enter">
-      <span class="pulse-dot"></span>
-      BEGIN EXPLORATION
-    </a>
-  </div>
-  <div class="scroll-hint">
-    <div class="scroll-line"></div>
-    <span>SCROLL</span>
-  </div>
-</section>
-
-<!-- ═══════════════ MIND MAP ═══════════════ -->
-<section id="mindmap">
-  <canvas id="mindmap-canvas"></canvas>
-  <div class="orb orb-violet" style="width:500px;height:500px;top:10%;left:30%;opacity:0.8"></div>
-  <div class="section-inner">
-    <div class="mindmap-header reveal">
-      <div class="section-label">02 · Constellation Map</div>
-      <h2 class="section-title">The Skills<br>I've Mastered</h2>
-      <p class="section-body">Each node is a discipline. Each connection, a way I combine them to create something no single skill could produce alone.</p>
-    </div>
-    <div class="skill-legend reveal reveal-delay-1">
-      <span class="skill-pill violet"><span class="pill-dot" style="background:var(--violet)"></span>UI / UX Design</span>
-      <span class="skill-pill magenta"><span class="pill-dot" style="background:var(--magenta)"></span>Video Editing</span>
-      <span class="skill-pill cyan"><span class="pill-dot" style="background:var(--cyan)"></span>Content Strategy</span>
-      <span class="skill-pill amber"><span class="pill-dot" style="background:var(--amber)"></span>Brand Design</span>
-      <span class="skill-pill magenta"><span class="pill-dot" style="background:var(--magenta)"></span>Motion Graphics</span>
-      <span class="skill-pill amber"><span class="pill-dot" style="background:var(--amber)"></span>AI Tools</span>
-      <span class="skill-pill cyan"><span class="pill-dot" style="background:var(--cyan)"></span>Social Media Content</span>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════ GALAXY ═══════════════ -->
-<section id="galaxy">
-  <canvas id="galaxy-canvas"></canvas>
-  <div class="galaxy-ui">
-    <div class="galaxy-title-block reveal">
-      <div class="section-label" style="justify-content:center">03 · Project Galaxy</div>
-      <p style="font-size:13px;color:var(--muted);font-family:'JetBrains Mono',monospace;letter-spacing:.1em">HOVER A STAR TO EXPLORE · CLICK TO ENTER</p>
-    </div>
-    <div class="galaxy-filters">
-      <button class="gf-btn active" data-filter="all">ALL</button>
-      <button class="gf-btn" data-filter="design">DESIGN</button>
-      <button class="gf-btn" data-filter="video">VIDEO</button>
-      <button class="gf-btn" data-filter="ai">AI</button>
-      <button class="gf-btn" data-filter="brand">BRAND</button>
-    </div>
-  </div>
-  <div id="star-tooltip" class="star-tooltip">
-    <div class="star-tooltip-cat" id="tt-cat"></div>
-    <div class="star-tooltip-title" id="tt-title"></div>
-    <div class="star-tooltip-desc" id="tt-desc"></div>
-  </div>
-</section>
-
-<!-- ═══════════════ CASE STUDIES ═══════════════ -->
-<section id="casestudies">
-  <div class="orb orb-cyan" style="width:600px;height:600px;top:20%;right:-200px;opacity:0.7"></div>
-  <div class="section-inner">
-    <div class="reveal">
-      <div class="section-label">04 · Featured Work</div>
-      <h2 class="section-title">Stories Worth<br>Telling</h2>
-    </div>
-    <div class="cases-grid">
-
-      <!-- Case 1: MindCast AI -->
-      <div class="case-item">
-        <div class="case-visual">
-          <div class="case-visual-inner" style="background:linear-gradient(135deg,#0D1B3E,#1A0D5E,#0D3350)">
-            <span style="background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;opacity:.7;font-size:72px">AI</span>
-          </div>
-        </div>
-        <div class="case-content">
-          <div class="case-cat">
-            <span class="cat-dot" style="background:var(--cyan)"></span>
-            <span style="color:var(--cyan)">BRAND IDENTITY · AI</span>
-          </div>
-          <h3 class="case-title">MindCast AI — Brand Identity</h3>
-          <p class="case-desc">Designed a playful and intelligent brand identity for an AI startup — logo, complete visual system, typography, and all digital assets. The challenge was making AI feel approachable without losing its intelligence.</p>
-          <div class="case-metrics">
-            <div><div class="case-metric-val" style="color:var(--cyan)">Full</div><div class="case-metric-label">Visual system</div></div>
-            <div><div class="case-metric-val" style="color:var(--cyan)">AI</div><div class="case-metric-label">Startup client</div></div>
-          </div>
-          <div class="case-tags">
-            <span class="tag">Figma</span>
-            <span class="tag">Brand Design</span>
-            <span class="tag">Logo Design</span>
-            <span class="tag">Digital Assets</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Case 2: Web3 Crypto Firm -->
-      <div class="case-item">
-        <div class="case-visual">
-          <div class="case-visual-inner" style="background:linear-gradient(135deg,#0A1A30,#0A2040,#150A35)">
-            <span style="background:linear-gradient(135deg,var(--violet),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;opacity:.7;font-size:72px">W3</span>
-          </div>
-        </div>
-        <div class="case-content">
-          <div class="case-cat">
-            <span class="cat-dot" style="background:var(--violet)"></span>
-            <span style="color:var(--violet)">BRAND + TEMPLATES · WEB3</span>
-          </div>
-          <h3 class="case-title">Web3 Crypto Firm — Brand &amp; Templates</h3>
-          <p class="case-desc">Built a complete brand identity and template system for a Web3 cryptocurrency firm — from visual identity to production-ready presentation and social media templates that scale across all their communications.</p>
-          <div class="case-metrics">
-            <div><div class="case-metric-val" style="color:var(--violet)">Brand</div><div class="case-metric-label">Identity system</div></div>
-            <div><div class="case-metric-val" style="color:var(--violet)">Web3</div><div class="case-metric-label">Crypto sector</div></div>
-          </div>
-          <div class="case-tags">
-            <span class="tag">Brand Identity</span>
-            <span class="tag">Figma</span>
-            <span class="tag">Template Design</span>
-            <span class="tag">Web3</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Case 3: AI Short Film -->
-      <div class="case-item">
-        <div class="case-visual">
-          <div class="case-visual-inner" style="background:linear-gradient(135deg,#1A0520,#3D0D2A,#1A1035)">
-            <span style="background:linear-gradient(135deg,var(--magenta),var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;opacity:.7;font-size:72px">▶</span>
-          </div>
-        </div>
-        <div class="case-content">
-          <div class="case-cat">
-            <span class="cat-dot" style="background:var(--magenta)"></span>
-            <span style="color:var(--magenta)">AI FILM PRODUCTION · 2024</span>
-          </div>
-          <h3 class="case-title">AI Short Film for Educational Group</h3>
-          <p class="case-desc">Produced a short film entirely with AI tools for an educational organisation — using Kling for visuals, HeyGen for AI avatars, and ElevenLabs for voice synthesis. A new kind of storytelling, built without a camera.</p>
-          <div class="case-metrics">
-            <div><div class="case-metric-val" style="color:var(--magenta)">100%</div><div class="case-metric-label">AI-generated</div></div>
-            <div><div class="case-metric-val" style="color:var(--magenta)">Edu</div><div class="case-metric-label">Sector client</div></div>
-          </div>
-          <div class="case-tags">
-            <span class="tag">Kling AI</span>
-            <span class="tag">HeyGen</span>
-            <span class="tag">ElevenLabs</span>
-            <span class="tag">AI Production</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Case 4: England Industrial Video -->
-      <div class="case-item">
-        <div class="case-visual">
-          <div class="case-visual-inner" style="background:linear-gradient(135deg,#101A10,#0A2A1A,#1A1A10)">
-            <span style="background:linear-gradient(135deg,var(--amber),#FFE066);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;opacity:.7;font-size:72px">✦</span>
-          </div>
-        </div>
-        <div class="case-content">
-          <div class="case-cat">
-            <span class="cat-dot" style="background:var(--amber)"></span>
-            <span style="color:var(--amber)">VIDEO EDITING · ENGLAND</span>
-          </div>
-          <h3 class="case-title">Industrial Tools &amp; Hardware Video — England</h3>
-          <p class="case-desc">Edited a product video series for a notable industrial tools and hardware brand based in England — showcasing precision products with cinematic pacing, sharp cuts, and a tone that matches the brand's professional identity.</p>
-          <div class="case-metrics">
-            <div><div class="case-metric-val" style="color:var(--amber)">UK</div><div class="case-metric-label">Based client</div></div>
-            <div><div class="case-metric-val" style="color:var(--amber)">B2B</div><div class="case-metric-label">Industrial sector</div></div>
-          </div>
-          <div class="case-tags">
-            <span class="tag">Premiere Pro</span>
-            <span class="tag">After Effects</span>
-            <span class="tag">Product Video</span>
-            <span class="tag">B2B</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════ PROCESS ═══════════════ -->
-<section id="process">
-  <div class="orb orb-magenta" style="width:500px;height:500px;top:30%;left:10%;opacity:0.8"></div>
-  <div class="section-inner">
-    <div class="reveal">
-      <div class="section-label">05 · Creative Process</div>
-      <h2 class="section-title">How a Thought<br>Becomes a World</h2>
-      <p class="section-body">I don't just make things. I move through states — from restless curiosity to precise execution. This is the orbit of my creative process.</p>
-    </div>
-    <div class="process-orbit-wrap">
-      <canvas id="process-canvas"></canvas>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════ ABOUT ═══════════════ -->
-<section id="about">
-  <div class="section-inner">
-    <div class="about-split">
-      <div class="reveal">
-        <div class="about-portrait">
-          <div class="about-portrait-inner">
-            <div class="portrait-initials">NM</div>
-            <div class="portrait-name-tag">Nikhilesh Mishra</div>
-          </div>
-          <div class="about-portrait-glow"></div>
-        </div>
-      </div>
-      <div class="reveal reveal-delay-1">
-        <div class="section-label">06 · About the Creator</div>
-        <p class="about-quote">I turn ideas into <em>compelling visual stories</em> that help brands communicate effectively.</p>
-        <p class="about-body">I'm Nikhilesh Mishra, a multidisciplinary designer and content creator who works across strategy, design, motion graphics, and video editing. I enjoy turning ideas into compelling visual stories and helping brands communicate effectively through thoughtful content. Recently, I've also been exploring AI-assisted workflows to enhance creativity and production — because the future of design isn't just human or machine, it's both working together.</p>
-        <div class="about-stats">
-          <div><div class="about-stat-val">2+</div><div class="about-stat-lbl">Years experience</div></div>
-          <div><div class="about-stat-val">4+</div><div class="about-stat-lbl">Projects completed</div></div>
-          <div><div class="about-stat-val">7+</div><div class="about-stat-lbl">Tools mastered</div></div>
-        </div>
-        <div class="about-values">
-          <div class="about-value-item">
-            <div class="value-icon">✦</div>
-            <div>
-              <div class="value-text-title">Visual storytelling over decoration</div>
-              <div class="value-text-desc">Every design has a story to tell. I make sure it's one worth remembering.</div>
-            </div>
-          </div>
-          <div class="about-value-item">
-            <div class="value-icon">⊕</div>
-            <div>
-              <div class="value-text-title">Strategy drives every decision</div>
-              <div class="value-text-desc">Aesthetics without intention is just noise. Every visual earns its place.</div>
-            </div>
-          </div>
-          <div class="about-value-item">
-            <div class="value-icon">◈</div>
-            <div>
-              <div class="value-text-title">AI as a creative partner</div>
-              <div class="value-text-desc">Exploring AI-assisted workflows to push the boundaries of what's creatively possible.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════ CONTACT ═══════════════ -->
-<section id="contact">
-  <canvas id="contact-canvas"></canvas>
-  <div class="contact-inner">
-    <p class="contact-pretitle reveal">07 · Contact Portal</p>
-    <h2 class="contact-title reveal reveal-delay-1">Ready to build<br>something <span>that matters?</span></h2>
-    <p class="contact-sub reveal reveal-delay-2">Transmit your signal. I'll respond within 24 hours.</p>
-
-    <div class="contact-direct reveal reveal-delay-2">
-      <div class="contact-info-item">
-        <div class="contact-info-icon">✉</div>
-        <a href="mailto:Nikhileshm47@gmail.com">Nikhileshm47@gmail.com</a>
-      </div>
-      <div class="contact-info-item">
-        <div class="contact-info-icon">☏</div>
-        <a href="tel:+917398421741">+91 73984 21741</a>
-      </div>
-    </div>
-
-    <form class="contact-form reveal reveal-delay-3" onsubmit="handleSubmit(event)">
-      <div class="form-row">
-        <label class="form-label">Your Name</label>
-        <input type="text" class="form-input" placeholder="How shall I address you?" required>
-      </div>
-      <div class="form-row">
-        <label class="form-label">Email</label>
-        <input type="email" class="form-input" placeholder="Where should my reply land?" required>
-      </div>
-      <div class="form-row">
-        <label class="form-label">Message</label>
-        <textarea class="form-textarea" placeholder="Tell me about your universe..." required></textarea>
-      </div>
-      <button type="submit" class="form-submit">
-        TRANSMIT
-        <span class="transmit-arrow">→</span>
-      </button>
-    </form>
-
-    <div class="contact-footer">
-      <div class="contact-social">
-        <a href="https://www.linkedin.com/in/nikhileshm47/" target="_blank" class="social-link">
-          <span class="social-link-dot" style="background:var(--cyan)"></span>LINKEDIN
-        </a>
-        <a href="https://www.behance.net/nikhileshm47" target="_blank" class="social-link">
-          <span class="social-link-dot" style="background:var(--violet)"></span>BEHANCE
-        </a>
-      </div>
-      <span class="contact-copy">© 2025 · NIKHILESH MISHRA · BUILT FROM STARDUST</span>
-    </div>
-  </div>
-</section>
-
-<script>
-/* ══ CURSOR ══ */
-const cur = document.getElementById('cursor');
-const curRing = document.getElementById('cursorRing');
-let mx=0,my=0,rx=0,ry=0;
-document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
-(function animRing(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;curRing.style.left=rx+'px';curRing.style.top=ry+'px';requestAnimationFrame(animRing);})();
-
-/* ══ HERO PARTICLES ══ */
-(function initHero(){
-  const canvas=document.getElementById('hero-canvas');
-  const ctx=canvas.getContext('2d');
-  let W,H,stars=[];
-  function resize(){W=canvas.width=canvas.offsetWidth;H=canvas.height=canvas.offsetHeight;}
-  resize();window.addEventListener('resize',resize);
-  function mkStar(){return{x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.3,vx:(Math.random()-.5)*.15,vy:(Math.random()-.5)*.15,a:Math.random(),da:(Math.random()*.005+.001)*(Math.random()>.5?1:-1)};}
-  for(let i=0;i<220;i++)stars.push(mkStar());
-  let shoots=[];
-  function mkShoot(){return{x:Math.random()*W,y:Math.random()*H*.5,len:Math.random()*120+80,a:0,da:.025,done:false};}
-  setInterval(()=>{if(shoots.length<3)shoots.push(mkShoot());},3000);
-  function draw(){
-    ctx.clearRect(0,0,W,H);
-    const g=ctx.createRadialGradient(W*.5,H*.4,0,W*.5,H*.4,H*.6);
-    g.addColorStop(0,'rgba(10,20,60,.4)');g.addColorStop(1,'rgba(4,6,15,0)');
-    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-    stars.forEach(s=>{
-      s.x+=s.vx;s.y+=s.vy;s.a+=s.da;
-      if(s.a>1||s.a<0)s.da*=-1;
-      if(s.x<0)s.x=W;if(s.x>W)s.x=0;if(s.y<0)s.y=H;if(s.y>H)s.y=0;
-      ctx.save();ctx.globalAlpha=s.a*.85;ctx.fillStyle='#E8EDF8';ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();ctx.restore();
-    });
-    shoots=shoots.filter(sh=>!sh.done);
-    shoots.forEach(sh=>{
-      sh.a+=sh.da;const alpha=Math.sin(sh.a*Math.PI);if(sh.a>=1){sh.done=true;return;}
-      ctx.save();ctx.globalAlpha=alpha*.6;
-      const g2=ctx.createLinearGradient(sh.x,sh.y,sh.x+sh.len*.866,sh.y+sh.len*.5);
-      g2.addColorStop(0,'rgba(0,200,240,0)');g2.addColorStop(.5,'rgba(0,200,240,.8)');g2.addColorStop(1,'rgba(255,255,255,0)');
-      ctx.strokeStyle=g2;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(sh.x,sh.y);ctx.lineTo(sh.x+sh.len*.866,sh.y+sh.len*.5);ctx.stroke();ctx.restore();
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
-
-/* ══ MIND MAP ══ */
-(function initMindmap(){
-  const canvas=document.getElementById('mindmap-canvas');
-  const ctx=canvas.getContext('2d');
-  let W,H;
-  function resize(){W=canvas.width=canvas.offsetWidth;H=canvas.height=canvas.offsetHeight;}
-  resize();window.addEventListener('resize',resize);
-  const cx=()=>W*.65,cy=()=>H*.55;
-  const nodes=[
-    {label:'NM',sub:'',angle:0,dist:0,color:'#00C8F0',size:28,subs:[]},
-    {label:'UI/UX',sub:'Design',angle:-100,dist:200,color:'#7B4FFF',size:18,subs:['Figma','Prototyping','Systems']},
-    {label:'Brand',sub:'Design',angle:-50,dist:230,color:'#00C8F0',size:20,subs:['Identity','Visual','Guidelines']},
-    {label:'Video',sub:'Editing',angle:10,dist:210,color:'#FF2D8A',size:17,subs:['Premiere','Narrative','Color']},
-    {label:'AI',sub:'Tools',angle:60,dist:220,color:'#FFAA00',size:19,subs:['Kling','HeyGen','ElevenLabs']},
-    {label:'Motion',sub:'Graphics',angle:115,dist:200,color:'#FF2D8A',size:16,subs:['After Effects','Animation']},
-    {label:'Content',sub:'Strategy',angle:155,dist:195,color:'#00C8F0',size:15,subs:['Social','Editorial']},
-    {label:'Social',sub:'Media',angle:-145,dist:205,color:'#7B4FFF',size:16,subs:['Reels','Posts','Strategy']},
-  ];
-  let t=0;
-  function draw(){
-    t+=.008;ctx.clearRect(0,0,W,H);
-    const X=cx(),Y=cy();
-    nodes.forEach((n,i)=>{
-      if(i===0)return;
-      const rad=n.angle*Math.PI/180;
-      const nx=X+Math.cos(rad)*n.dist,ny=Y+Math.sin(rad)*n.dist;
-      ctx.save();ctx.strokeStyle=n.color;ctx.lineWidth=.5;ctx.globalAlpha=.25;ctx.setLineDash([4,4]);ctx.lineDashOffset=-t*20;
-      ctx.beginPath();ctx.moveTo(X,Y);ctx.lineTo(nx,ny);ctx.stroke();ctx.restore();
-      n.subs.forEach((s,si)=>{
-        const sa=rad+(si-(n.subs.length-1)/2)*.45;
-        const sx=nx+Math.cos(sa)*70,sy=ny+Math.sin(sa)*70;
-        ctx.save();ctx.strokeStyle=n.color;ctx.lineWidth=.3;ctx.globalAlpha=.15;ctx.setLineDash([2,3]);
-        ctx.beginPath();ctx.moveTo(nx,ny);ctx.lineTo(sx,sy);ctx.stroke();ctx.restore();
-        ctx.save();ctx.globalAlpha=.5;ctx.beginPath();ctx.arc(sx,sy,4,0,Math.PI*2);ctx.fillStyle=n.color;ctx.fill();ctx.restore();
-        ctx.save();ctx.globalAlpha=.35;ctx.fillStyle=n.color;ctx.font='10px JetBrains Mono';ctx.textAlign='center';ctx.fillText(s,sx,sy+15);ctx.restore();
-      });
-    });
-    nodes.forEach((n,i)=>{
-      const rad=n.angle*Math.PI/180;
-      const nx=i===0?X:X+Math.cos(rad)*n.dist,ny=i===0?Y:Y+Math.sin(rad)*n.dist;
-      const pulse=i===0?Math.sin(t*1.5)*4:Math.sin(t+i)*2;
-      const r=n.size+pulse;
-      const g=ctx.createRadialGradient(nx,ny,0,nx,ny,r*2.5);
-      g.addColorStop(0,n.color+'30');g.addColorStop(1,'transparent');
-      ctx.save();ctx.globalAlpha=.5;ctx.fillStyle=g;ctx.beginPath();ctx.arc(nx,ny,r*2.5,0,Math.PI*2);ctx.fill();ctx.restore();
-      ctx.save();ctx.strokeStyle=n.color;ctx.lineWidth=.7;ctx.globalAlpha=.35+Math.sin(t+i*.7)*.1;
-      ctx.beginPath();ctx.arc(nx,ny,r+8,0,Math.PI*2);ctx.stroke();ctx.restore();
-      ctx.save();ctx.fillStyle='#0A1428';ctx.strokeStyle=n.color;ctx.lineWidth=1;ctx.globalAlpha=.9;
-      ctx.beginPath();ctx.arc(nx,ny,r,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
-      ctx.save();ctx.fillStyle=n.color;ctx.globalAlpha=.6;ctx.beginPath();ctx.arc(nx,ny,r*.35,0,Math.PI*2);ctx.fill();ctx.restore();
-      if(i>0){
-        ctx.save();ctx.fillStyle=n.color;ctx.globalAlpha=.8;ctx.font='500 11px Syne,sans-serif';ctx.textAlign='center';
-        ctx.fillText(n.label,nx,ny+r+16);if(n.sub)ctx.fillText(n.sub,nx,ny+r+29);ctx.restore();
-      }
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
-
-/* ══ GALAXY ══ */
-(function initGalaxy(){
-  const canvas=document.getElementById('galaxy-canvas');
-  const ctx=canvas.getContext('2d');
-  const tooltip=document.getElementById('star-tooltip');
-  const ttCat=document.getElementById('tt-cat');
-  const ttTitle=document.getElementById('tt-title');
-  const ttDesc=document.getElementById('tt-desc');
-  let W,H;
-  function resize(){
-    W=canvas.width=window.innerWidth;
-    H=canvas.height=window.innerHeight;
-  }
-  resize();window.addEventListener('resize',resize);
-
-  const projects=[
-    {name:'MindCast AI Brand Identity',desc:'Playful & intelligent brand system for AI startup',cat:'brand',color:'#00C8F0',x:.20,y:.28,size:16},
-    {name:'Web3 Crypto Firm Brand',desc:'Full brand identity + template system',cat:'brand',color:'#7B4FFF',x:.50,y:.22,size:14},
-    {name:'AI Short Film — Educational',desc:'Kling + HeyGen + ElevenLabs production',cat:'ai',color:'#FFAA00',x:.75,y:.35,size:15},
-    {name:'Industrial Tools Video — England',desc:'Product video series for UK hardware brand',cat:'video',color:'#FF2D8A',x:.30,y:.55,size:14},
-    {name:'Motion Graphics Reel',desc:'Brand motion language and animation assets',cat:'video',color:'#FF2D8A',x:.80,y:.60,size:10},
-    {name:'Social Media Content System',desc:'Content strategy + visual templates',cat:'design',color:'#00C8F0',x:.15,y:.65,size:11},
-    {name:'AI Avatar Production',desc:'HeyGen-powered video content series',cat:'ai',color:'#FFAA00',x:.60,y:.55,size:10},
-    {name:'Brand Identity Exploration',desc:'Visual identity concepts & moodboards',cat:'brand',color:'#7B4FFF',x:.42,y:.70,size:9},
-    {name:'UI Design System',desc:'Component library & design tokens',cat:'design',color:'#00C8F0',x:.68,y:.75,size:10},
-    {name:'Content Strategy Framework',desc:'Editorial & social content planning',cat:'design',color:'#7B4FFF',x:.88,y:.45,size:11},
-  ];
-
-  const bgStars=Array.from({length:180},()=>({x:Math.random(),y:Math.random(),r:Math.random()*.8+.2,a:Math.random()}));
-  let hoveredProject=null,activeFilter='all',t=0;
-
-  document.querySelectorAll('.gf-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      document.querySelectorAll('.gf-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');activeFilter=btn.dataset.filter;
-    });
-    btn.style.cursor='none';
-  });
-  canvas.addEventListener('mousemove',e=>{
-    const rect=canvas.getBoundingClientRect();
-    const mx=e.clientX-rect.left,my=e.clientY-rect.top;
-    hoveredProject=null;
-    projects.forEach(p=>{
-      const px=p.x*W,py=p.y*H;
-      if(Math.sqrt((mx-px)**2+(my-py)**2)<p.size+10)hoveredProject=p;
-    });
-    if(hoveredProject){
-      ttCat.textContent=hoveredProject.cat.toUpperCase();ttCat.style.color=hoveredProject.color;
-      ttTitle.textContent=hoveredProject.name;ttDesc.textContent=hoveredProject.desc;
-      tooltip.style.left=(hoveredProject.x*W)+'px';tooltip.style.top=(hoveredProject.y*H)+'px';
-      tooltip.classList.add('visible');
-    }else{tooltip.classList.remove('visible');}
-  });
-  canvas.addEventListener('mouseleave',()=>{tooltip.classList.remove('visible');hoveredProject=null;});
-
-  function draw(){
-    t+=.01;ctx.clearRect(0,0,W,H);
-    bgStars.forEach(s=>{ctx.save();ctx.globalAlpha=s.a*.4;ctx.fillStyle='#E8EDF8';ctx.beginPath();ctx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2);ctx.fill();ctx.restore();});
-    if(activeFilter!=='all'){
-      const filtered=projects.filter(p=>p.cat===activeFilter);
-      for(let i=0;i<filtered.length;i++){for(let j=i+1;j<filtered.length;j++){
-        const a=filtered[i],b=filtered[j];
-        if(Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2)<.35){
-          ctx.save();ctx.strokeStyle=a.color;ctx.lineWidth=.4;ctx.globalAlpha=.15;ctx.setLineDash([3,5]);
-          ctx.beginPath();ctx.moveTo(a.x*W,a.y*H);ctx.lineTo(b.x*W,b.y*H);ctx.stroke();ctx.restore();
-        }
-      }}
+// --- DATA ---
+const PORTFOLIO_DATA = {
+  creator: {
+    name: "Nikhilesh Mishra",
+    role: "Creative Designer",
+    bio: "I'm a multidisciplinary designer and content creator working across strategy, design, motion graphics, and video editing. I turn ideas into compelling visual stories using AI-assisted workflows."
+  },
+  skills: [
+    { name: "UI/UX Design", icon: <Palette size={18} /> },
+    { name: "Video Editing", icon: <Video size={18} /> },
+    { name: "Content Strategy", icon: <Layers size={18} /> },
+    { name: "Brand Design", icon: <Zap size={18} /> },
+    { name: "Motion Graphics", icon: <Workflow size={18} /> },
+    { name: "AI Tools", icon: <Cpu size={18} /> }
+  ],
+  projects: [
+    {
+      id: 1,
+      title: "MindCast AI",
+      category: "Brand Identity",
+      description: "Designed a playful and intelligent brand identity for an AI startup including logo and digital system.",
+      color: "#00d2ff",
+      pos: [-5, 2, -2]
+    },
+    {
+      id: 2,
+      title: "Web3 Crypto Firm",
+      category: "Branding",
+      description: "Created branding, templates, and design assets for a Web3 crypto company.",
+      color: "#9d50bb",
+      pos: [5, -1, -3]
+    },
+    {
+      id: 3,
+      title: "AI Short Film",
+      category: "Production",
+      description: "Produced an AI-generated educational short film using Kling, HeyGen, and ElevenLabs.",
+      color: "#ff006e",
+      pos: [-3, -4, -1]
+    },
+    {
+      id: 4,
+      title: "Industrial Tools",
+      category: "Video Editing",
+      description: "Edited promotional and product videos for notable industrial tools from England.",
+      color: "#ffbe0b",
+      pos: [4, 4, -2]
     }
-    projects.forEach(p=>{
-      const px=p.x*W,py=p.y*H;
-      const isFiltered=activeFilter!=='all'&&p.cat!==activeFilter;
-      const isHovered=hoveredProject===p;
-      const r=p.size+Math.sin(t+p.x*10)*1.5+(isHovered?6:0);
-      const alpha=isFiltered?.08:(isHovered?1:.7);
-      ctx.save();ctx.globalAlpha=alpha;
-      const g=ctx.createRadialGradient(px,py,0,px,py,r*3);
-      g.addColorStop(0,p.color+'50');g.addColorStop(1,'transparent');
-      ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,r*3,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#fff';ctx.globalAlpha=alpha*.8;ctx.beginPath();ctx.arc(px,py,r*.3,0,Math.PI*2);ctx.fill();
-      ctx.restore();
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
+  ],
+  process: ["Strategy", "Design", "Motion", "AI Enhancement", "Final Delivery"]
+};
 
-/* ══ PROCESS ══ */
-(function initProcess(){
-  const canvas=document.getElementById('process-canvas');
-  const ctx=canvas.getContext('2d');
-  let W,H;
-  function resize(){
-    W=canvas.width=canvas.offsetWidth||window.innerWidth;
-    H=canvas.height=600;
-    canvas.style.width='100%';
-    canvas.style.height='600px';
-  }
-  resize();window.addEventListener('resize',resize);
-  const phases=[
-    {label:'Research',sub:'Absorb everything',color:'#00C8F0',angle:-90},
-    {label:'Strategy',sub:'Find the frame',color:'#7B4FFF',angle:-30},
-    {label:'Create',sub:'Make the leap',color:'#FF2D8A',angle:30},
-    {label:'Refine',sub:'Kill your darlings',color:'#FFAA00',angle:90},
-    {label:'Ship',sub:'Release the work',color:'#00C8F0',angle:150},
-    {label:'Reflect',sub:'Learn and evolve',color:'#7B4FFF',angle:210},
-  ];
-  let t=0;
-  function draw(){
-    t+=.005;ctx.clearRect(0,0,W,H);
-    const cx=W/2,cy=H/2;
-    const orbitR=Math.min(W*.38, H*.38, 220);
-    ctx.save();ctx.strokeStyle='#1A2540';ctx.lineWidth=1;ctx.setLineDash([6,4]);
-    ctx.beginPath();ctx.arc(cx,cy,orbitR,0,Math.PI*2);ctx.stroke();ctx.restore();
-    ctx.save();ctx.fillStyle='rgba(0,200,240,.4)';
-    ctx.beginPath();ctx.arc(cx+Math.cos(t)*orbitR,cy+Math.sin(t)*orbitR,3,0,Math.PI*2);ctx.fill();ctx.restore();
-    const cpulse=Math.sin(t*2)*3;
-    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,50+cpulse);
-    g.addColorStop(0,'rgba(255,170,0,.3)');g.addColorStop(1,'transparent');
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,50+cpulse,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#0A1428';ctx.strokeStyle='#FFAA00';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.arc(cx,cy,30,0,Math.PI*2);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#FFAA00';ctx.globalAlpha=.7;ctx.beginPath();ctx.arc(cx,cy,10,0,Math.PI*2);ctx.fill();
-    ctx.globalAlpha=1;ctx.font='600 12px Syne,sans-serif';ctx.fillStyle='#FFCC55';ctx.textAlign='center';
-    ctx.fillText('IDEA',cx,cy+5);ctx.font='10px JetBrains Mono';ctx.fillStyle='#FFAA00';ctx.globalAlpha=.5;ctx.fillText('CENTER',cx,cy+20);ctx.globalAlpha=1;
-    phases.forEach((p,i)=>{
-      const rad=p.angle*Math.PI/180;
-      const px=cx+Math.cos(rad)*orbitR,py=cy+Math.sin(rad)*orbitR;
-      const r=26+Math.sin(t*1.5+i)*2;
-      ctx.save();ctx.strokeStyle='#FFAA00';ctx.lineWidth=.3;ctx.globalAlpha=.15;ctx.setLineDash([3,4]);
-      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();ctx.restore();
-      const gg=ctx.createRadialGradient(px,py,0,px,py,r*2.5);
-      gg.addColorStop(0,p.color+'30');gg.addColorStop(1,'transparent');
-      ctx.fillStyle=gg;ctx.beginPath();ctx.arc(px,py,r*2.5,0,Math.PI*2);ctx.fill();
-      ctx.save();ctx.strokeStyle=p.color;ctx.lineWidth=.8;ctx.globalAlpha=.35+Math.sin(t*1.2+i*.8)*.1;
-      ctx.beginPath();ctx.arc(px,py,r+10,0,Math.PI*2);ctx.stroke();ctx.restore();
-      ctx.fillStyle='#0A1428';ctx.strokeStyle=p.color;ctx.lineWidth=1.2;
-      ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();ctx.stroke();
-      ctx.fillStyle=p.color;ctx.globalAlpha=.5;ctx.beginPath();ctx.arc(px,py,r*.4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
-      // step number inside node
-      ctx.font='700 11px JetBrains Mono';ctx.fillStyle='#fff';ctx.globalAlpha=.6;
-      ctx.textAlign='center';ctx.fillText('0'+(i+1),px,py+4);ctx.globalAlpha=1;
-      // label outside node — push further out to avoid overlap
-      const labelDist=r+36;
-      const lx=px+Math.cos(rad)*labelDist;
-      const ly=py+Math.sin(rad)*labelDist;
-      ctx.font='700 13px Syne,sans-serif';ctx.fillStyle=p.color;ctx.globalAlpha=.95;
-      ctx.textAlign=lx>cx?'left':'right';
-      ctx.fillText(p.label,lx,ly);
-      ctx.font='11px DM Sans,sans-serif';ctx.fillStyle='#8892a4';ctx.globalAlpha=.75;
-      ctx.fillText(p.sub,lx,ly+16);
-      ctx.globalAlpha=1;
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
+// --- 3D COMPONENTS ---
 
-/* ══ CONTACT PARTICLES ══ */
-(function initContact(){
-  const canvas=document.getElementById('contact-canvas');
-  const ctx=canvas.getContext('2d');
-  let W,H;
-  function resize(){W=canvas.width=canvas.offsetWidth;H=canvas.height=canvas.offsetHeight;}
-  resize();window.addEventListener('resize',resize);
-  const pts=Array.from({length:60},()=>({x:Math.random()*W||1,y:Math.random()*H||1,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:Math.random()*1.2+.3,a:Math.random()}));
-  function draw(){
-    ctx.clearRect(0,0,W,H);
-    pts.forEach(p=>{
-      p.x+=p.vx;p.y+=p.vy;
-      if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;
-      ctx.save();ctx.globalAlpha=p.a*.25;ctx.fillStyle='#7B4FFF';
-      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.restore();
-    });
-    requestAnimationFrame(draw);
-  }
-  draw();
-})();
+function BrainPortal({ active, isTransitioning }) {
+  const points = useRef();
+  const group = useRef();
+  
+  const particles = useMemo(() => {
+    const count = 4000;
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const r = 1.4 + Math.random() * 0.4;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      
+      const x = r * Math.sin(phi) * Math.cos(theta);
+      const y = r * Math.sin(phi) * Math.sin(theta) * (0.8 + Math.cos(x * 2.5) * 0.15);
+      const z = r * Math.cos(phi) * 1.3;
+      
+      pos[i * 3] = x;
+      pos[i * 3 + 1] = y;
+      pos[i * 3 + 2] = z;
+    }
+    return pos;
+  }, []);
 
-/* ══ SCROLL REVEAL ══ */
-const revealObs=new IntersectionObserver(entries=>{
-  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
-},{threshold:.12});
-document.querySelectorAll('.reveal,.case-item').forEach(el=>revealObs.observe(el));
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (group.current) {
+      group.current.rotation.y = t * 0.15;
+      group.current.position.y = Math.sin(t * 0.5) * 0.1;
+    }
+    
+    if (points.current && isTransitioning) {
+      points.current.scale.lerp(new THREE.Vector3(8, 8, 8), 0.03);
+      points.current.material.opacity = THREE.MathUtils.lerp(points.current.material.opacity, 0, 0.05);
+    }
+  });
 
-/* ══ FORM ══ */
-function handleSubmit(e){
-  e.preventDefault();
-  const btn=e.target.querySelector('.form-submit');
-  btn.textContent='SIGNAL RECEIVED ✦';
-  btn.style.background='linear-gradient(135deg,#00C8F0,#0099BB)';
-  setTimeout(()=>{
-    btn.innerHTML='TRANSMIT <span class="transmit-arrow">→</span>';
-    btn.style.background='';e.target.reset();
-  },3000);
+  if (!active && !isTransitioning) return null;
+
+  return (
+    <group ref={group}>
+      <Points ref={points} positions={particles} stride={3}>
+        <PointMaterial
+          transparent
+          color={theme.primary}
+          size={0.012}
+          sizeAttenuation={true}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </Points>
+      <mesh>
+        <sphereGeometry args={[1.1, 32, 32]} />
+        <MeshDistortMaterial
+          color={theme.secondary}
+          speed={3}
+          distort={0.4}
+          radius={1}
+          opacity={isTransitioning ? 0 : 0.2}
+          transparent
+        />
+      </mesh>
+    </group>
+  );
 }
-</script>
-</body>
-</html>
+
+function ProcessTunnel() {
+  const tunnelRef = useRef();
+  const curve = useMemo(() => new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0, 10),
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(2, 2, -10),
+    new THREE.Vector3(-2, -2, -20),
+    new THREE.Vector3(0, 0, -40)
+  ]), []);
+
+  useFrame((state) => {
+    if (tunnelRef.current) {
+      tunnelRef.current.material.uniforms.uTime.value = state.clock.getElapsedTime();
+    }
+  });
+
+  return (
+    <mesh ref={tunnelRef}>
+      <tubeGeometry args={[curve, 100, 3, 16, false]} />
+      <shaderMaterial
+        transparent
+        side={THREE.DoubleSide}
+        uniforms={{ uTime: { value: 0 } }}
+        vertexShader={`
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `}
+        fragmentShader={`
+          uniform float uTime;
+          varying vec2 vUv;
+          void main() {
+            float pulse = sin(vUv.x * 40.0 - uTime * 4.0) * 0.5 + 0.5;
+            float scan = smoothstep(0.4, 0.5, pulse) * smoothstep(0.6, 0.5, pulse);
+            vec3 baseColor = vec3(0.02, 0.0, 0.05);
+            vec3 glowColor = vec3(0.0, 0.8, 1.0);
+            gl_FragColor = vec4(mix(baseColor, glowColor, scan * vUv.y), (scan * 0.4 + 0.1));
+          }
+        `}
+      />
+    </mesh>
+  );
+}
+
+function Planet({ project, onSelect }) {
+  const [hovered, setHover] = useState(false);
+  const mesh = useRef();
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    mesh.current.rotation.y = t * 0.4;
+    mesh.current.position.y += Math.sin(t + project.id) * 0.005;
+  });
+
+  return (
+    <group position={project.pos} onClick={() => onSelect(project)} onPointerOver={() => setHover(true)} onPointerOut={() => setHover(false)}>
+      <mesh ref={mesh}>
+        <sphereGeometry args={[0.7, 32, 32]} />
+        <MeshDistortMaterial color={project.color} speed={hovered ? 6 : 2} distort={hovered ? 0.5 : 0.2} />
+      </mesh>
+      <Text position={[0, 1.2, 0]} fontSize={0.3} color="white" font="https://fonts.gstatic.com/s/syncopate/v12/pe0tMIuPIYBCpEV5eFdCBfe5.woff">
+        {project.title}
+      </Text>
+    </group>
+  );
+}
+
+// --- UI COMPONENTS ---
+
+const IdentityChamber = ({ onExplore }) => (
+  <div className="flex flex-col md:flex-row gap-8 items-center max-w-5xl w-full px-6 animate-in fade-in zoom-in duration-1000">
+    <div className="flex-1 p-10 rounded-[2rem] bg-black/60 backdrop-blur-2xl border border-white/10 shadow-2xl">
+      <div className="flex items-center gap-5 mb-8">
+        <div className="w-16 h-16 rounded-2xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 border border-cyan-500/30">
+          <Brain size={32} />
+        </div>
+        <div>
+          <h2 className="text-4xl font-black tracking-tighter">{PORTFOLIO_DATA.creator.name}</h2>
+          <p className="text-cyan-400 font-mono text-sm tracking-widest uppercase">{PORTFOLIO_DATA.creator.role}</p>
+        </div>
+      </div>
+      <p className="text-gray-300 text-lg leading-relaxed mb-10">
+        {PORTFOLIO_DATA.creator.bio}
+      </p>
+      <div className="grid grid-cols-2 gap-4">
+        {PORTFOLIO_DATA.skills.map((skill, i) => (
+          <div key={i} className="flex items-center gap-3 p-4 bg-white/5 rounded-xl border border-white/5 hover:border-cyan-500/40 transition-all group">
+            <span className="text-cyan-400 group-hover:scale-110 transition-transform">{skill.icon}</span>
+            <span className="text-sm font-bold uppercase tracking-tight">{skill.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div className="w-full md:w-80 flex flex-col gap-4">
+      <button 
+        onClick={onExplore}
+        className="w-full py-8 bg-white text-black font-black text-xl rounded-[2rem] flex items-center justify-center gap-3 hover:bg-cyan-400 transition-all hover:-translate-y-1 active:scale-95 shadow-xl shadow-cyan-500/10"
+      >
+        VIEW GALAXY <ArrowRight size={24} />
+      </button>
+      <div className="p-8 rounded-[2rem] bg-cyan-950/20 border border-cyan-500/20">
+        <h4 className="text-[10px] font-black tracking-[0.4em] uppercase text-cyan-500 mb-6">Neural Workflow</h4>
+        <div className="space-y-4">
+          {PORTFOLIO_DATA.process.map((step, i) => (
+            <div key={i} className="flex items-center gap-4 group">
+              <span className="w-6 h-6 rounded-full border border-cyan-500/30 flex items-center justify-center text-[10px] font-mono group-hover:bg-cyan-500 group-hover:text-black transition-colors">{i+1}</span>
+              <span className="text-sm font-bold opacity-70 group-hover:opacity-100 transition-opacity">{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// --- MAIN APP ---
+
+export default function App() {
+  const [scene, setScene] = useState('arrival'); // arrival, chamber, galaxy
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [activeProject, setActiveProject] = useState(null);
+
+  const handleEnter = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    // Timing the camera move and scene switch
+    setTimeout(() => {
+      setScene('chamber');
+      setIsTransitioning(false);
+    }, 1800);
+  };
+
+  return (
+    <div className="h-screen w-full bg-[#030303] text-white font-sans overflow-hidden selection:bg-cyan-500/40">
+      
+      {/* Cinematic Header */}
+      <header className="fixed top-0 left-0 w-full p-8 z-50 flex justify-between items-center mix-blend-difference pointer-events-none">
+        <div className="flex flex-col">
+          <h1 className="text-3xl font-black italic tracking-tighter leading-none">NM.VERSE</h1>
+          <span className="text-[9px] tracking-[0.5em] uppercase opacity-40 mt-1">Design Intelligence</span>
+        </div>
+        <div className="flex gap-8 pointer-events-auto">
+          <a href="https://linkedin.com/in/nikhileshm47/" target="_blank" className="hover:text-cyan-400 transition-colors uppercase text-[10px] font-bold tracking-widest">LinkedIn</a>
+          <a href="https://www.behance.net/nikhileshm47" target="_blank" className="hover:text-cyan-400 transition-colors uppercase text-[10px] font-bold tracking-widest">Behance</a>
+        </div>
+      </header>
+
+      {/* 3D Visualizer */}
+      <div className="fixed inset-0 z-0 bg-black">
+        <Canvas shadows gl={{ antialias: true }}>
+          <PerspectiveCamera makeDefault position={[0, 0, 5]} />
+          <Suspense fallback={null}>
+            <Environment preset="night" />
+            <ambientLight intensity={0.2} />
+            <pointLight position={[10, 10, 10]} intensity={1.5} color={theme.primary} />
+            <pointLight position={[-10, -10, -10]} intensity={1} color={theme.secondary} />
+            
+            {scene === 'arrival' && <BrainPortal active={true} isTransitioning={isTransitioning} />}
+            
+            {scene === 'chamber' && (
+              <>
+                <ProcessTunnel />
+                <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.5} />
+              </>
+            )}
+
+            {scene === 'galaxy' && (
+              <group>
+                <OrbitControls enablePan={false} maxDistance={15} minDistance={3} />
+                {PORTFOLIO_DATA.projects.map(p => (
+                  <Planet key={p.id} project={p} onSelect={setActiveProject} />
+                ))}
+              </group>
+            )}
+            
+            <Stars />
+          </Suspense>
+        </Canvas>
+      </div>
+
+      {/* UI Interaction Layer */}
+      <main className="relative z-10 flex flex-col items-center justify-center h-full pointer-events-none">
+        
+        {scene === 'arrival' && (
+          <div className={`text-center transition-all duration-1000 ${isTransitioning ? 'opacity-0 scale-95' : 'opacity-100'}`}>
+            <h2 className="text-7xl md:text-9xl font-black tracking-tighter mb-6 italic animate-pulse">
+              THE <span className="text-transparent bg-clip-text bg-gradient-to-br from-cyan-400 via-purple-500 to-pink-500">MIND</span>
+            </h2>
+            <p className="text-sm text-gray-400 mb-12 tracking-[1em] font-light uppercase px-4">Interfacing Creative Consciousness</p>
+            
+            <button 
+              onClick={handleEnter}
+              className="pointer-events-auto group relative flex items-center justify-center p-1"
+            >
+              <div className="absolute inset-0 bg-cyan-500 blur-2xl opacity-20 group-hover:opacity-50 transition-opacity"></div>
+              <div className="relative bg-white/5 border border-white/20 backdrop-blur-md px-10 py-5 rounded-full flex items-center gap-3 group-hover:border-cyan-400 transition-all">
+                <Sparkles size={20} className="text-cyan-400 group-hover:rotate-12 transition-transform" />
+                <span className="font-black tracking-[0.2em] uppercase text-sm">Initiate Connection</span>
+              </div>
+            </button>
+          </div>
+        )}
+
+        {scene === 'chamber' && (
+          <IdentityChamber onExplore={() => setScene('galaxy')} />
+        )}
+
+        {scene === 'galaxy' && (
+          <div className="absolute bottom-16 left-0 w-full px-12 pointer-events-auto flex flex-col md:flex-row justify-between items-end gap-6 animate-in slide-in-from-bottom-12 duration-1000">
+            <div className="max-w-md">
+              <h2 className="text-5xl font-black italic tracking-tighter mb-4">PROJECT GALAXY</h2>
+              <p className="text-gray-400 leading-relaxed text-sm">Select a star system to reveal a case study. My projects orbit around the central core of my creative process.</p>
+            </div>
+            <button 
+              onClick={() => setScene('chamber')}
+              className="px-8 py-4 rounded-full border border-white/20 hover:bg-white hover:text-black transition-all font-bold uppercase tracking-widest text-xs"
+            >
+              Back to Identity Chamber
+            </button>
+          </div>
+        )}
+      </main>
+
+      {/* Project Modal */}
+      {activeProject && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300 pointer-events-auto">
+          <div className="max-w-3xl w-full bg-[#111] border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl">
+            <div className="h-64 w-full flex items-center justify-center relative" style={{ background: `linear-gradient(135deg, ${activeProject.color}44, #000)` }}>
+              <h3 className="text-8xl font-black text-white/5 uppercase tracking-tighter select-none">{activeProject.category}</h3>
+              <div className="absolute top-8 right-8">
+                <button onClick={() => setActiveProject(null)} className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center hover:bg-white hover:text-black transition-all">✕</button>
+              </div>
+            </div>
+            <div className="p-12">
+              <p className="text-cyan-400 font-mono text-xs uppercase tracking-[0.3em] mb-4">{activeProject.category}</p>
+              <h2 className="text-5xl font-black mb-6">{activeProject.title}</h2>
+              <p className="text-gray-400 text-xl leading-relaxed mb-10">{activeProject.description}</p>
+              <div className="flex gap-4">
+                <button className="flex-1 py-6 bg-white text-black font-black rounded-2xl flex items-center justify-center gap-3 hover:bg-cyan-400 transition-colors">
+                  Open Project Case Study <ExternalLink size={20} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Background Noise */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.04] bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+    </div>
+  );
+}
+
+function Stars() {
+  const points = useRef();
+  const [positions] = useState(() => {
+    const pos = new Float32Array(6000 * 3);
+    for (let i = 0; i < 6000; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 60;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 60;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 60;
+    }
+    return pos;
+  });
+
+  useFrame((state) => {
+    points.current.rotation.y = state.clock.getElapsedTime() * 0.03;
+    points.current.rotation.z = state.clock.getElapsedTime() * 0.01;
+  });
+
+  return (
+    <Points ref={points} positions={positions} stride={3}>
+      <PointMaterial transparent color="#fff" size={0.03} sizeAttenuation depthWrite={false} blending={THREE.AdditiveBlending} />
+    </Points>
+  );
+}
